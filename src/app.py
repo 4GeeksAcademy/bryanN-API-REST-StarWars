@@ -38,12 +38,82 @@ def sitemap():
 
 @app.route('/user', methods=['GET'])
 def handle_hello():
+    try:
 
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
-    }
+        query_results= User.query.all()
 
-    return jsonify(response_body), 200
+        if not query_results:
+            return jsonify({"msg": "Usuarios no encontrados"}), 400
+        
+        results= list(map(lambda item: item.serialize(), query_results))
+
+
+        response_body = {
+        "msg": "Todo salio bien",
+        "results": results
+        }
+
+        return jsonify(response_body), 200
+    
+    except Exception as e:
+        print(f"Error al obtener usuarios: {e}")
+        return jsonify({"msg": "Internal Server Error", "error": str(e)}), 500
+    
+#//////////////////////////////////////////////////////////////////////// trae un usuario por id  
+@app.route('/user/<int:user_id>', methods=['GET'])
+def user_by_id(user_id):
+    try:
+
+        query_results= User.query.filter_by(id=user_id).first()
+        
+        if not query_results:
+            return jsonify({"msg": "Usuario no existe"}), 400
+        
+        
+        response_body = {
+        "msg": "usuario encontrado",
+        "results": query_results.serialize()
+        }
+
+        return jsonify(response_body), 200
+    
+    except Exception as e:
+        print(f"Error al obtener usuarios: {e}")
+        return jsonify({"msg": "Internal Server Error", "error": str(e)}), 500
+
+# /////////////////////////////////////////////////////////////////////////////////
+# crear un usuario 
+@app.route('/user', methods=['POST'])
+def create_user():
+
+    data= request.get_json()
+
+    if not data:
+        return jsonify({"msg": "no se proporcionaron datos"}), 400
+    
+    email= data.get("email")
+    password=data.get("password")
+    is_active=data.get("is_active", False)
+
+    existing_user= User.query.filter_by(email=email).first()
+    if existing_user:
+        return jsonify({"msg": "ya existe un usuario con ese email"}), 409
+    
+    new_user=User(
+        email=email,
+        password=password,
+        is_active=is_active
+    )
+    db.session.add(new_user)
+    
+    try:
+        db.session.commit()
+        return jsonify(new_user.serialize()), 201
+    
+    except Exception as e:
+        print(f"Error al obtener usuarios: {e}")
+        return jsonify({"msg": "Internal Server Error", "error": str(e)}), 500
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
