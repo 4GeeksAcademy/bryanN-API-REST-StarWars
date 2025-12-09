@@ -8,15 +8,16 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
-#from models import Person
+from models import db, User, People, Planet
+# from models import Person
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 
 db_url = os.getenv("DATABASE_URL")
 if db_url is not None:
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace("postgres://", "postgresql://")
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace(
+        "postgres://", "postgresql://")
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -27,95 +28,209 @@ CORS(app)
 setup_admin(app)
 
 # Handle/serialize errors like a JSON object
+
+
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
 
 # generate sitemap with all your endpoints
+
+
 @app.route('/')
 def sitemap():
     return generate_sitemap(app)
+
 
 @app.route('/user', methods=['GET'])
 def handle_hello():
     try:
 
-        query_results= User.query.all()
+        query_results = User.query.all()
 
         if not query_results:
             return jsonify({"msg": "Usuarios no encontrados"}), 400
-        
-        results= list(map(lambda item: item.serialize(), query_results))
 
+        results = list(map(lambda item: item.serialize(), query_results))
 
         response_body = {
-        "msg": "Todo salio bien",
-        "results": results
+            "msg": "Todo salio bien",
+            "results": results
         }
 
         return jsonify(response_body), 200
-    
+
     except Exception as e:
         print(f"Error al obtener usuarios: {e}")
         return jsonify({"msg": "Internal Server Error", "error": str(e)}), 500
-    
-#//////////////////////////////////////////////////////////////////////// trae un usuario por id  
+
+# //////////////////////////////////////////////////////////////////////// trae un usuario por id
+
+
 @app.route('/user/<int:user_id>', methods=['GET'])
 def user_by_id(user_id):
     try:
 
-        query_results= User.query.filter_by(id=user_id).first()
-        
+        query_results = User.query.filter_by(id=user_id).first()
+
         if not query_results:
             return jsonify({"msg": "Usuario no existe"}), 400
-        
-        
+
         response_body = {
-        "msg": "usuario encontrado",
-        "results": query_results.serialize()
+            "msg": "usuario encontrado",
+            "results": query_results.serialize()
         }
 
         return jsonify(response_body), 200
-    
+
     except Exception as e:
         print(f"Error al obtener usuarios: {e}")
         return jsonify({"msg": "Internal Server Error", "error": str(e)}), 500
 
 # /////////////////////////////////////////////////////////////////////////////////
-# crear un usuario 
+# crear un usuario
+
+
 @app.route('/user', methods=['POST'])
 def create_user():
 
-    data= request.get_json()
+    data = request.get_json()
 
     if not data:
         return jsonify({"msg": "no se proporcionaron datos"}), 400
-    
-    email= data.get("email")
-    password=data.get("password")
-    is_active=data.get("is_active", False)
 
-    existing_user= User.query.filter_by(email=email).first()
+    email = data.get("email")
+    password = data.get("password")
+    is_active = data.get("is_active", False)
+
+    existing_user = User.query.filter_by(email=email).first()
     if existing_user:
         return jsonify({"msg": "ya existe un usuario con ese email"}), 409
-    
-    new_user=User(
+
+    new_user = User(
         email=email,
         password=password,
         is_active=is_active
     )
     db.session.add(new_user)
-    
+
     try:
         db.session.commit()
         return jsonify(new_user.serialize()), 201
-    
+
     except Exception as e:
         print(f"Error al obtener usuarios: {e}")
         return jsonify({"msg": "Internal Server Error", "error": str(e)}), 500
 
 
-# this only runs if `$ python src/app.py` is executed
+@app.route('/people', methods=['GET'])
+def get_people():
+    try:
+        people_query = People.query.all()
+
+        if not people_query:
+            return jsonify({'msg': 'No people found', 'results': []}), 200
+
+        results = list(map(lambda item: item.serialize(), people_query))
+
+        response_body = {
+            'msg': 'Here are all the people',
+            'results': results
+        }
+
+        return jsonify(response_body)
+
+    except Exception as e:
+        print(f"Error getting people: {e}")
+        return jsonify({"msg": "Internal Server Error", "error": str(e)}), 500
+
+
+@app.route('/people/int:people_id', methods=['GET'])
+def get_people_by_id(people_id):
+    try:
+        query_results = People.query.filter_by(id=people_id).first()
+
+        if not query_results:
+            return jsonify({'msg': 'Not people found'}), 400
+
+        response_body = {
+            'msg': 'Here it is the requested People',
+            'results': query_results.serialize()
+        }
+
+        return jsonify(response_body)
+
+    except Exception as e:
+        print(f'Error getting people: {e}')
+        return jsonify({'msg': 'Internal Server Error', 'error': str(e)}), 500
+
+
+@app.route('/people', methods=['POST'])
+def create_people():
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'msg': 'Data not received'}), 400
+
+    name= data.get('name')
+    gender= data.get('gender')
+    hair_color= data.get('hair_color')
+    eye_color= data.get('eye_color')
+    skin_color= data.get('skin_color')
+    birth_year= data.get('birth_year')
+
+    existing_people = People.query.filter_by(name=name).first()
+    if existing_people:
+        return jsonify({'msg': 'People already exists'}), 409
+        
+    new_people = People(
+        name= name,
+        gender= gender ,
+        hair_color= hair_color,
+        eye_color= eye_color,
+        skin_color= skin_color,
+        birth_year= birth_year            
+    )
+    db.session.add(new_people)
+
+    try:
+        db.session.commit()
+        return(jsonify(new_people.serialize())), 201  
+
+    except Exception as e:
+        print(f'There was an error creating people: {e}')
+        return jsonify({'msg': 'Internal Server Error', 'error': str(e)}), 500
+    
+@app.route('/planet', methods=['GET'])
+def get_planets():
+    try:
+        query_results= Planet.query.all()
+        if not query_results:
+            return jsonify({'msg': 'No planets found', 'results': []}), 200
+        
+        results = list(map(lambda item: item.serialize(), query_results))
+        response_body={
+            'msg': 'Here are all the planets',
+            'results': results
+        }
+
+        return jsonify(response_body)
+    
+    except Exception as e:
+        print(f'There was an arror getting planet: {e}')
+        return jsonify({'msg': 'Internal Server Error', 'error': str(e)})
+    
+@app.route('planet/int:planet_id', methods=['GET'])
+def get_planet_by_id():
+    try:
+        query_results = Planet
+    
+
+    except Exception as e:
+        print(f'There was an error getting plantes: {e}')
+        return jsonify({'msg': 'Internal Server Error', 'error': str(e)})
+
+        # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3000))
     app.run(host='0.0.0.0', port=PORT, debug=False)
