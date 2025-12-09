@@ -220,10 +220,18 @@ def get_planets():
         print(f'There was an arror getting planet: {e}')
         return jsonify({'msg': 'Internal Server Error', 'error': str(e)})
     
-@app.route('planet/int:planet_id', methods=['GET'])
-def get_planet_by_id():
+@app.route('/planet/int:planet_id', methods=['GET'])
+def get_planet_by_id(planet_id):
     try:
-        query_results = Planet
+        query_results = Planet.query.filter_by(id=planet_id).first()
+        if not query_results:
+            return jsonify({'msg': 'Planet not found'})
+        
+        response_body={
+            'msg': "Here it is the requested planet",
+            'results': query_results.serialize()
+        }
+        return jsonify(response_body)
     
 
     except Exception as e:

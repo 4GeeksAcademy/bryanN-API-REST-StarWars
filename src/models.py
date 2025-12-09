@@ -95,8 +95,6 @@ class Vehicle(db.Model):
     passengers: Mapped[str] = mapped_column(String(120), nullable=False)
     manufacturer: Mapped[str] = mapped_column(String(120), nullable=False)
     model: Mapped[str] = mapped_column(String(120), nullable=False)
-    crew: Mapped[str] = mapped_column(String(120), nullable=False)
-    cost_in_credits: Mapped[str] = mapped_column(String(120), nullable=False)
 
     favorites = relationship("FavoriteVehicle", back_populates="vehicle")
 
@@ -107,8 +105,6 @@ class Vehicle(db.Model):
             "passengers": self.passengers,
             "manufacturer": self.manufacturer,
             "model": self.model,
-            "crew": self.crew,
-            "cost_in_credits": self.cost_in_credits,
         }
 
 
@@ -119,35 +115,3 @@ class FavoriteVehicle(db.Model):
 
     user = relationship("User", back_populates="favorite_vehicles")
     vehicle = relationship("Vehicle", back_populates="favorites")
-
-
-class Starship(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(120), nullable=False)
-    passengers: Mapped[str] = mapped_column(String(120), nullable=False)
-    manufacturer: Mapped[str] = mapped_column(String(120), nullable=False)
-    model: Mapped[str] = mapped_column(String(120), nullable=False)
-    crew: Mapped[str] = mapped_column(String(120), nullable=False)
-    cost_in_credits: Mapped[str] = mapped_column(String(120), nullable=False)
-
-    favorites = relationship("FavoriteStarship", back_populates="starship")
-
-    def serialize(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "passengers": self.passengers,
-            "manufacturer": self.manufacturer,
-            "model": self.model,
-            "crew": self.crew,
-            "cost_in_credits": self.cost_in_credits,
-        }
-
-
-class FavoriteStarship(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('user.id'))
-    starship_id: Mapped[int] = mapped_column(ForeignKey('starship.id'))
-
-    user = relationship("User", back_populates="favorite_starships")
-    starship = relationship("Starship", back_populates="favorites")
